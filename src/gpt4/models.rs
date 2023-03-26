@@ -7,9 +7,8 @@ pub struct GPT4Request {
     pub max_tokens: u32,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Message {
     pub role: String,
     pub content: String,
 }
-

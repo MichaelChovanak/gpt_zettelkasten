@@ -3,23 +3,23 @@ use reqwest::Error;
 use serde_json::Value;
 use std::env;
 
-pub async fn call_gpt4_api(prompt: &str, max_tokens: u32) -> Result<String, Error> {
+
+pub async fn call_gpt4_api(prompt: &str, messages: &mut Vec<Message>, max_tokens: u32) -> Result<String, Error> {
+    //Gather necessary data
     let api_key = env::var("OPENAI_API_KEY").unwrap_or_else(|_| String::from("<YOUR_API_KEY>"));
     let url = "https://api.openai.com/v1/chat/completions";
+    
+    // Create a user message from prompt and push it onto messages
+    let input = Message {
+        role: "user".to_string(),
+        content: prompt.to_string()
+    };
+    messages.push(input);
 
     let client = reqwest::Client::new();
     let request_payload = GPT4Request {
         model: "gpt-3.5-turbo".to_string(),
-        messages: vec![
-            Message {
-                role: "system".to_string(),
-                content: "You are a helpful assistant.".to_string(),
-            },
-            Message {
-                role: "user".to_string(),
-                content: prompt.to_string(),
-            },
-        ],
+        messages: messages.to_vec(),
         max_tokens,
     };
 
@@ -33,13 +33,17 @@ pub async fn call_gpt4_api(prompt: &str, max_tokens: u32) -> Result<String, Erro
         .json()
         .await?;
 
-    //println!("JSON Response: {:?}", response_json);
+    //println!(""); println!("JSON Response: {:?}", response_json);
 
     let generated_text = response_json["choices"][0]["message"]["content"]
         .as_str()
         .unwrap_or("No result")
         .to_string();
-
+    let output = Message {
+        role: "system".to_string(),
+        content: generated_text.to_string(),
+    };
+    messages.push(output);
     Ok(generated_text)
 }
 
