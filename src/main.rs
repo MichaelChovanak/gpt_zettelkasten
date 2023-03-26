@@ -1,19 +1,60 @@
-mod gpt4 {
-    pub mod api;
-    pub mod models;
+use spinners::{Spinner, Spinners};
+use std::io::{stdin, stdout, Write, Result};
+
+mod gpt4;
+
+async fn interactive_loop() {
+    clear_terminal();
+    loop {
+        print!("> ");
+        stdout().flush().unwrap();
+        let mut prompt = String::new();
+        stdin()
+            .read_line(&mut prompt)
+            .expect("Failed to read line");
+
+        println!("");
+
+        let mut sp = Spinner::new(Spinners::Dots9, "\t\tOpenAI is Thinking".into());
+
+        let mut response = String::new();        
+        match gpt4::api::call_gpt4_api(&prompt, 500).await {
+            Ok(res) => response=res,
+            Err(e) => eprintln!("Error: {:?}", e),
+        }
+        sp.stop();
+        clear_line();
+
+        println!("{}", response.to_string());
+
+    }
 }
 
-use gpt4::api::call_gpt4_api;
-use reqwest::Error;
+fn clear_terminal() {
+    print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
+    stdout().flush().unwrap();
+}
 
-#[tokio::main]
-async fn main() -> Result<(), Error> {
-    let prompt = "Translate the following English text to French: 'Hello, how are you?'";
-    let max_tokens = 50;
+fn clear_line() -> Result<()> {
+    let stdout = stdout();
+    let mut handle = stdout.lock();
 
-    let result = call_gpt4_api(prompt, max_tokens).await?;
+    // move the cursor to the beginning of the line
+    write!(handle, "\r")?;
 
-    println!("Generated text: {}", result);
+    // clear the line
+    write!(handle, "\x1b[2K")?;
+
+    // move the cursor back to the beginning of the line
+    write!(handle, "\r")?;
+
+    handle.flush()?;
 
     Ok(())
 }
+
+#[tokio::main]
+async fn main() {
+    interactive_loop().await;
+}
+

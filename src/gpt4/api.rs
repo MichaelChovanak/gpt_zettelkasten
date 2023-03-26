@@ -33,7 +33,7 @@ pub async fn call_gpt4_api(prompt: &str, max_tokens: u32) -> Result<String, Erro
         .json()
         .await?;
 
-    println!("JSON Response: {:?}", response_json);
+    //println!("JSON Response: {:?}", response_json);
 
     let generated_text = response_json["choices"][0]["message"]["content"]
         .as_str()
