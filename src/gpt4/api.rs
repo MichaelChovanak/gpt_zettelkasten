@@ -3,23 +3,21 @@ use reqwest::Error;
 use serde_json::Value;
 use std::env;
 
-pub async fn call_gpt4_api(prompt: &str, max_tokens: u32) -> Result<String, Error> {
+
+pub async fn call_gpt4_api(prompt: &str, messages: &Vec<Message>, max_tokens: u32) -> Result<String, Error> {
     let api_key = env::var("OPENAI_API_KEY").unwrap_or_else(|_| String::from("<YOUR_API_KEY>"));
     let url = "https://api.openai.com/v1/chat/completions";
+
+    let input = Message {
+        role: "user".to_string(),
+        content: prompt.to_string()
+    };
+    messages.append(input.to_vec());
 
     let client = reqwest::Client::new();
     let request_payload = GPT4Request {
         model: "gpt-3.5-turbo".to_string(),
-        messages: vec![
-            Message {
-                role: "system".to_string(),
-                content: "You are a helpful assistant.".to_string(),
-            },
-            Message {
-                role: "user".to_string(),
-                content: prompt.to_string(),
-            },
-        ],
+        messages: messages.to_vec(),
         max_tokens,
     };
 
@@ -39,7 +37,11 @@ pub async fn call_gpt4_api(prompt: &str, max_tokens: u32) -> Result<String, Erro
         .as_str()
         .unwrap_or("No result")
         .to_string();
-
+    let output = Message {
+        role: "system".to_string(),
+        content: generated_text.to_string(),
+    };
+    messages.append(output.to_vec());
     Ok(generated_text)
 }
 

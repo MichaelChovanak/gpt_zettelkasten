@@ -1,10 +1,16 @@
 use spinners::{Spinner, Spinners};
 use std::io::{stdin, stdout, Write, Result};
-
+use crate::gpt4::models::Message;
 mod gpt4;
 
 async fn interactive_loop() {
     clear_terminal();
+    let mut message_history: Vec<Message> = Vec::new();
+    let starter_prompt = Message {
+        role: "system".to_string(),
+        content: "You are a helpful assistant who helps keep track of notes".to_string(),
+    }
+    message_history.append(starter_prompt);
     loop {
         print!("> ");
         stdout().flush().unwrap();
@@ -15,18 +21,29 @@ async fn interactive_loop() {
 
         println!("");
 
-        let mut sp = Spinner::new(Spinners::Dots9, "\t\tOpenAI is Thinking".into());
+        let mut sp = Spinner::new(Spinners::Dots10, "\t\tOpenAI is Thinking".into());
 
         let mut response = String::new();        
-        match gpt4::api::call_gpt4_api(&prompt, 500).await {
+        match gpt4::api::call_gpt4_api(&prompt, &message_history, 500).await {
             Ok(res) => response=res,
             Err(e) => eprintln!("Error: {:?}", e),
-        }
+        };
         sp.stop();
-        clear_line();
+        clear_line().unwrap();
 
         println!("{}", response.to_string());
 
+
+        let mut user_message = Message {
+            role: "user".to_string(),
+            content: prompt.to_string(),
+        };
+        let mut response_message = Message {
+            role: "system".to_string(),
+            content: response.to_string(),
+        };
+        message_history.append(user_message);
+        message_history.append(response_message);
     }
 }
 
