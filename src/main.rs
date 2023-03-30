@@ -1,16 +1,11 @@
 use spinners::{Spinner, Spinners};
-use std::io::{stdin, stdout, Write, Result};
+use std::io::{stdin, stdout, Write};
 use crate::gpt4::models::Message;
 mod gpt4;
 
-async fn interactive_loop() {
+// Interact with the user and call the GPT-4 API
+async fn interactive_loop(message_history: &mut Vec<Message>) {
     clear_terminal();
-    let mut message_history: Vec<Message> = Vec::new();
-    let starter_prompt = Message {
-        role: "system".to_string(),
-        content: "You are a helpful assistant who helps keep track of notes".to_string(),
-    };
-    message_history.push(starter_prompt);
     loop {
         print!("> ");
         stdout().flush().unwrap();
@@ -24,7 +19,7 @@ async fn interactive_loop() {
         let mut sp = Spinner::new(Spinners::Dots10, "\t\tOpenAI is Thinking".into());
 
         let mut response = String::new();        
-        match gpt4::api::call_gpt4_api(&prompt, &mut message_history, 500).await {
+        match gpt4::api::call_gpt4_api(&prompt, message_history, 500).await {
             Ok(res) => response=res,
             Err(e) => eprintln!("Error: {:?}", e),
         };
@@ -35,12 +30,14 @@ async fn interactive_loop() {
     }
 }
 
+// Clear the terminal screen
 fn clear_terminal() {
     print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
     stdout().flush().unwrap();
 }
 
-fn clear_line() -> Result<()> {
+// Clear the current line in the terminal
+fn clear_line() -> std::io::Result<()> {
     let stdout = stdout();
     let mut handle = stdout.lock();
 
@@ -58,8 +55,15 @@ fn clear_line() -> Result<()> {
     Ok(())
 }
 
+// Main function
 #[tokio::main]
 async fn main() {
-    interactive_loop().await;
+    let mut message_history: Vec<Message> = Vec::new();
+    let starter_prompt = Message {
+        role: "system".to_string(),
+        content: "You are a helpful assistant who helps keep track of notes".to_string(),
+    };
+    message_history.push(starter_prompt);
+    interactive_loop(&mut message_history).await;
 }
 
